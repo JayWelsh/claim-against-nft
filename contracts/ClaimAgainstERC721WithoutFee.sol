@@ -6,59 +6,59 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract ClaimAgainstERC721 is Ownable {
+contract ClaimAgainstERC721WithoutFee is Ownable {
 
     // Controlled variables
     using Counters for Counters.Counter;
-    Counters.Counter private claimIdTracker; // First claim starts at 1 to simplify checking if a tokenId has a claim attached to it
-    mapping(uint256 => uint256) public claimIdToTokenId;
+    Counters.Counter private claimCountTracker;
     mapping(uint256 => uint256) public tokenIdToClaimId;
-    mapping(uint256 => address) public claimIdToClaimant;
-    mapping(address => uint256[]) public claimantToClaimIds;
+    mapping(uint256 => address) public tokenIdToClaimant;
+    mapping(address => uint256[]) public claimantToTokenIds;
+
+    event claimedAgainstTokenId(address indexed claimant, uint256 indexed tokenId, uint256 timestamp);
 
     // Config variables
     ERC721 qualifyingToken;
-    uint256 claimFee;
     uint256 public openingTimeUnix;
     uint256 public closingTimeUnix;
 
     constructor(
         address _qualifyingTokenAddress,
-        uint256 _claimFee,
         uint256 _openingTimeUnix,
         uint256 _closingTimeUnix
     ) {
         qualifyingToken = ERC721(_qualifyingTokenAddress);
-        claimFee = _claimFee;
         openingTimeUnix = _openingTimeUnix;
         closingTimeUnix = _closingTimeUnix;
     }
 
-    function claimAgainstTokenIds(uint256[] memory _tokenIds) public payable {
+    function claimAgainstTokenIds(uint256[] memory _tokenIds) public {
         require(_tokenIds.length > 0, "ClaimAgainstERC721::claimAgainstTokenIds: no token IDs provided");
         require(block.timestamp >= openingTimeUnix, "ClaimAgainstERC721::claimAgainstTokenIds: claims have not yet opened");
         require(block.timestamp < closingTimeUnix, "ClaimAgainstERC721::claimAgainstTokenIds: claims have closed");
-        require(msg.value == (claimFee * _tokenIds.length), "ClaimAgainstERC721::claimAgainstTokenIds: incorrect claim fee provided");
         for(uint256 i = 0; i < _tokenIds.length; i++) {
             uint256 tokenId = _tokenIds[i];
+            require(tokenIdToClaimant[tokenId] == address(0), "ClaimAgainstERC721::claimAgainstTokenIds: token with provided ID has already been claimed against");
             require(qualifyingToken.ownerOf(tokenId) == msg.sender, "ClaimAgainstERC721::claimAgainstTokenIds: msg.sender does not own specified token");
-            claimIdTracker.increment();
-            uint256 claimId = claimIdTracker.current();
-            claimIdToTokenId[claimId] = tokenId;
-            tokenIdToClaimId[tokenId] = claimId;
-            claimIdToClaimant[claimId] = msg.sender;
-            claimantToClaimIds[msg.sender].push(claimId);
+            tokenIdToClaimant[tokenId] = msg.sender;
+            claimantToTokenIds[msg.sender].push(tokenId);
+            emit claimedAgainstTokenId(msg.sender, tokenId, block.timestamp);
+            claimCountTracker.increment();
             // Do anything else that needs to happen for each tokenId here
         }
         // Do anything else that needs to happen once per collection of claim(s) here
     }
 
     function claimCount() public view returns(uint256) {
-        return claimIdTracker.current();
+        return claimCountTracker.current();
     }
 
     function claimantClaimCount(address _claimant) public view returns(uint256) {
-        return claimantToClaimIds[_claimant].length;
+        return claimantToTokenIds[_claimant].length;
+    }
+
+    function claimantToClaimedTokenIds(address _claimant) public view returns(uint256[] memory) {
+        return claimantToTokenIds[_claimant];
     }
 
 }
