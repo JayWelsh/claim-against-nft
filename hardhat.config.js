@@ -23,7 +23,7 @@ module.exports = {
   networks: {
     hardhat: {
       accounts: {
-        count: 101,
+        count: 103,
       }
     }
   }
