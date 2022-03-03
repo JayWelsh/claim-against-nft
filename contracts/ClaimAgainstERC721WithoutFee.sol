@@ -3,13 +3,11 @@ pragma solidity ^0.8.0;
 
 // OpenZeppelin Contracts @ version 4.3.2
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract ClaimAgainstERC721WithoutFee {
 
     // Controlled variables
-    using Counters for Counters.Counter;
-    Counters.Counter private claimCountTracker;
+    uint256 private claimCountTracker;
     mapping(uint256 => uint256) public tokenIdToClaimId;
     mapping(uint256 => address) public tokenIdToClaimant;
     mapping(address => uint256[]) public claimantToTokenIds;
@@ -42,14 +40,14 @@ contract ClaimAgainstERC721WithoutFee {
             tokenIdToClaimant[tokenId] = msg.sender;
             claimantToTokenIds[msg.sender].push(tokenId);
             emit claimedAgainstTokenId(msg.sender, tokenId, block.timestamp);
-            claimCountTracker.increment();
             // Do anything else that needs to happen for each tokenId here
         }
+        claimCountTracker += _tokenIds.length;
         // Do anything else that needs to happen once per collection of claim(s) here
     }
 
     function claimCount() public view returns(uint256) {
-        return claimCountTracker.current();
+        return claimCountTracker;
     }
 
     function claimantClaimCount(address _claimant) public view returns(uint256) {

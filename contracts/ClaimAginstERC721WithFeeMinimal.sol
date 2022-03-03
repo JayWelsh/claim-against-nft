@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ClaimAgainstERC721WithFee is Ownable {
+contract ClaimAgainstERC721WithFeeMinimal is Ownable {
 
     // Controlled variables
     uint256 private claimCountTracker;
@@ -58,24 +58,10 @@ contract ClaimAgainstERC721WithFee is Ownable {
             require(tokenIdToClaimant[tokenId] == address(0), "ClaimAgainstERC721::claimAgainstTokenIds: token with provided ID has already been claimed against");
             require(qualifyingToken.ownerOf(tokenId) == msg.sender, "ClaimAgainstERC721::claimAgainstTokenIds: msg.sender does not own specified token");
             tokenIdToClaimant[tokenId] = msg.sender;
-            claimantToTokenIds[msg.sender].push(tokenId);
             emit ClaimedAgainstTokenId(msg.sender, tokenId, block.timestamp);
             // Do anything else that needs to happen for each tokenId here
         }
-        claimCountTracker += tokenIdsLength;
         // Do anything else that needs to happen once per collection of claim(s) here
-    }
-
-    function claimCount() public view returns(uint256) {
-        return claimCountTracker;
-    }
-
-    function claimantClaimCount(address _claimant) public view returns(uint256) {
-        return claimantToTokenIds[_claimant].length;
-    }
-
-    function claimantToClaimedTokenIds(address _claimant) public view returns(uint256[] memory) {
-        return claimantToTokenIds[_claimant];
     }
 
     // Fee distribution logic below
